@@ -25,7 +25,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="ImGui\" />
+		<None Include="Assets\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 </Project>

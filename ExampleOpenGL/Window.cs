@@ -1,34 +1,46 @@
 ﻿using System.Numerics;
 using Silk.NET.GLFW;
+using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.SDL;
 using Silk.NET.Windowing;
 using Monitor = Silk.NET.GLFW.Monitor;
+using VideoMode = Silk.NET.GLFW.VideoMode;
 
 namespace ExampleOpenGL;
 
 internal unsafe class Window : DisposableObject
 {
-    private static List<IWindow> _windows = [];
+    private static readonly List<IWindow> _windows = [];
     private static Glfw? _glfw;
     private static Sdl? _sdl;
 
     private readonly IWindow _window;
+    private readonly IInputContext _inputContext;
+    private readonly IMouse _mouse;
+    private readonly IKeyboard _keyboard;
     private readonly GL _gl;
 
     public event Action? Load;
     public event Action<double>? Update;
     public event Action<double>? Render;
+    public event Action<Vector2D<int>>? Move;
+    public event Action<Vector2D<int>>? Resize;
+    public event Action? Closing;
 
     public Window()
     {
         WindowOptions options = WindowOptions.Default;
+        options.IsVisible = false;
 
         _window = SilkWindow.Create(options);
         _window.Load += () => Load?.Invoke();
         _window.Update += delta => Update?.Invoke(delta);
         _window.Render += delta => Render?.Invoke(delta);
+        _window.Move += position => Move?.Invoke(position);
+        _window.Resize += size => Resize?.Invoke(size);
+        _window.Closing += () => Closing?.Invoke();
 
         _window.Initialize();
 
@@ -36,10 +48,19 @@ internal unsafe class Window : DisposableObject
         IsGlfwWindow(_window);
         IsSdlWindow(_window);
 
+        _inputContext = _window.CreateInput();
+        _mouse = _inputContext.Mice[0];
+        _keyboard = _inputContext.Keyboards[0];
         _gl = _window.CreateOpenGL();
     }
 
+    public nint Handle => _window.Handle;
+
     public GL GL => _gl;
+
+    public IMouse Mouse => _mouse;
+
+    public IKeyboard Keyboard => _keyboard;
 
     public string Title
     {
@@ -124,6 +145,8 @@ internal unsafe class Window : DisposableObject
         set => _window.TopMost = value;
     }
 
+    public bool ShowInTaskbar { get; set; } = true;
+
     public bool IsFocused
     {
         get
@@ -177,7 +200,16 @@ internal unsafe class Window : DisposableObject
 
     public void Run()
     {
+        _window.IsVisible = true;
+
+        Load?.Invoke();
+
         _window.Run();
+    }
+
+    public void Show()
+    {
+        _window.IsVisible = true;
     }
 
     public void Focus()
@@ -190,6 +222,13 @@ internal unsafe class Window : DisposableObject
         {
             _sdl!.RaiseWindow((SdlWindow*)_window.Handle);
         }
+    }
+
+    public void PollEvents()
+    {
+        _window.DoEvents();
+        _window.DoUpdate();
+        _window.DoRender();
     }
 
     public static bool IsMouseFocusOnWindow()
@@ -309,18 +348,20 @@ internal unsafe class Window : DisposableObject
 
             Monitor* monitor = monitors[index];
 
+            VideoMode* videoMode = _glfw.GetVideoMode(monitor);
+
             string name = _glfw.GetMonitorName(monitor);
 
             _glfw.GetMonitorPos(monitor, out int x, out int y);
-            _glfw.GetMonitorPhysicalSize(monitor, out int width, out int height);
+            _glfw.GetMonitorWorkarea(monitor, out int workX, out int workY, out int workWidth, out int workHeight);
             _glfw.GetMonitorContentScale(monitor, out float xScale, out float yScale);
 
             return new Display(index,
                                name,
                                new Vector2(x, y),
-                               new Vector2(width, height),
-                               new Vector2(),
-                               new Vector2(),
+                               new Vector2(videoMode->Width, videoMode->Height),
+                               new Vector2(workX, workY),
+                               new Vector2(workWidth, workHeight),
                                MathF.Max(xScale, yScale));
         }
 
@@ -351,7 +392,15 @@ internal unsafe class Window : DisposableObject
 
     protected override void Destroy()
     {
+        _window.Close();
+
+        _inputContext.Dispose();
         _window.Dispose();
+
+        lock (_windows)
+        {
+            _windows.Remove(_window);
+        }
     }
 
     private static bool IsGlfwWindow(IWindow window)

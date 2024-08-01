@@ -1,32 +1,41 @@
 ﻿using ExampleOpenGL;
+using Hexa.NET.ImGui;
 
-SilkWindow.PrioritizeGlfw();
-// SilkWindow.PrioritizeSdl();
-
-using Window window = new();
-
-window.Load += Window_Load;
-window.Update += Window_Update;
-window.Render += Window_Render;
-
-window.Run();
-
-void Window_Load()
+internal unsafe class Program
 {
-}
+    private static Window _window = null!;
+    private static ImGuiController _controller = null!;
 
-void Window_Update(double obj)
-{
-}
-
-void Window_Render(double obj)
-{
-    int displayCount = Window.GetDisplayCount();
-
-    for (int i = 0; i < displayCount; i++)
+    private static void Main(string[] _)
     {
-        Display display = Window.GetDisplay(i);
+        SilkWindow.PrioritizeGlfw();
 
-        Console.WriteLine(display);
+        _window = new Window();
+
+        _window.Load += Window_Load;
+        _window.Update += Window_Update;
+        _window.Render += Window_Render;
+
+        _window.Run();
+
+        _window.Dispose();
+    }
+
+    private static void Window_Load()
+    {
+        _controller = new ImGuiController(_window,
+                                          new ImGuiFontConfig("Assets/Fonts/MSYH.TTC", 14, (a) => (nint)a.Fonts.GetGlyphRangesDefault()));
+    }
+
+    private static void Window_Update(double obj)
+    {
+        _controller.Update((float)obj);
+    }
+
+    private static void Window_Render(double obj)
+    {
+        ImGui.ShowDemoWindow();
+
+        _controller.Render();
     }
 }
