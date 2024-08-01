@@ -32,12 +32,26 @@ internal unsafe class Window : DisposableObject
     public Window()
     {
         WindowOptions options = WindowOptions.Default;
+        options.ShouldSwapAutomatically = false;
+        options.VSync = false;
         options.IsVisible = false;
 
         _window = SilkWindow.Create(options);
         _window.Load += () => Load?.Invoke();
         _window.Update += delta => Update?.Invoke(delta);
-        _window.Render += delta => Render?.Invoke(delta);
+        _window.Render += delta =>
+        {
+            if (IsGlfwWindow(_window))
+            {
+                _glfw!.SwapBuffers((GlfwWindow*)_window.Handle);
+            }
+            else if (IsSdlWindow(_window))
+            {
+                _sdl!.GLSwapWindow((SdlWindow*)_window.Handle);
+            }
+
+            Render?.Invoke(delta);
+        };
         _window.Move += position => Move?.Invoke(position);
         _window.Resize += size => Resize?.Invoke(size);
         _window.Closing += () => Closing?.Invoke();

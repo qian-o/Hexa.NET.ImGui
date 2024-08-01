@@ -8,7 +8,7 @@ internal unsafe class Program
 
     private static void Main(string[] _)
     {
-        SilkWindow.PrioritizeGlfw();
+        SilkWindow.PrioritizeSdl();
 
         _window = new Window();
 
