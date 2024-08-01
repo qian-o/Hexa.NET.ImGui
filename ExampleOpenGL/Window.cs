@@ -98,8 +98,8 @@ internal unsafe class Window : DisposableObject
                 _glfw.GetWindowPos((GlfwWindow*)_window.Handle, out int windowX, out int windowY);
                 _glfw.GetWindowSize((GlfwWindow*)_window.Handle, out int windowWidth, out int windowHeight);
 
-                int windowCenterX = windowX + windowWidth / 2;
-                int windowCenterY = windowY + windowHeight / 2;
+                int windowCenterX = windowX + (windowWidth / 2);
+                int windowCenterY = windowY + (windowHeight / 2);
 
                 for (int i = 0; i < displayCount; i++)
                 {

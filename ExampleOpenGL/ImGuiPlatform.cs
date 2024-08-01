@@ -2,7 +2,6 @@
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Maths;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 
 namespace ExampleOpenGL;
@@ -11,12 +10,14 @@ internal unsafe class ImGuiPlatform : DisposableObject
 {
     private readonly ImGuiViewport* _viewport;
     private readonly Window _window;
+    private readonly ImGuiRenderer _imGuiRenderer;
     private readonly bool _isExternalPlatform;
 
     public ImGuiPlatform(ImGuiViewport* viewport, Window window)
     {
         _viewport = viewport;
         _window = window;
+        _imGuiRenderer = new ImGuiRenderer(window);
         _isExternalPlatform = true;
 
         Initialize();
@@ -26,6 +27,7 @@ internal unsafe class ImGuiPlatform : DisposableObject
     {
         _viewport = viewport;
         _window = new Window();
+        _imGuiRenderer = new ImGuiRenderer(_window);
         _isExternalPlatform = false;
 
         Initialize();
@@ -73,8 +75,8 @@ internal unsafe class ImGuiPlatform : DisposableObject
     public void Render()
     {
         _window.GL.Viewport(0, 0, (uint)_window.Size.X, (uint)_window.Size.Y);
-        _window.GL.ClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-        _window.GL.Clear((uint)ClearBufferMask.ColorBufferBit);
+
+        _imGuiRenderer.Render(_viewport->DrawData);
     }
 
     protected override void Destroy()
@@ -89,6 +91,8 @@ internal unsafe class ImGuiPlatform : DisposableObject
 
     private void Initialize()
     {
+        _imGuiRenderer.Initialize();
+
         _viewport->PlatformHandle = (void*)_window.Handle;
 
         if (!_isExternalPlatform)

@@ -207,12 +207,13 @@ internal unsafe class ImGuiController : DisposableObject
 
     private void InitializePlatform()
     {
+        InitializePlatformDpiScale();
+
         ImGuiViewportPtr mainViewport = ImGui.GetMainViewport();
         ImGuiPlatform mainPlatform = new(mainViewport, _window);
 
         _platformsByHandle.Add((nint)mainViewport.PlatformHandle, mainPlatform);
 
-        InitializePlatformDpiScale();
         InitializePlatformMonitors();
         InitializePlatformCallbacks();
     }
